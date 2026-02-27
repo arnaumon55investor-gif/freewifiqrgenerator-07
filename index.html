@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WiFiQR – Free WiFi QR Code Generator</title>
+<meta name="description" content="Generate secure WiFi QR codes instantly. Private, fast and free.">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Inter',sans-serif;
+}
+
+body{
+background: radial-gradient(circle at top left,#1e1e2f,#0f0f17);
+min-height:100vh;
+display:flex;
+flex-direction:column;
+color:white;
+}
+
+header{
+text-align:center;
+padding:60px 20px 30px;
+}
+
+header h1{
+font-size:42px;
+font-weight:700;
+letter-spacing:-1px;
+}
+
+header p{
+opacity:0.7;
+margin-top:10px;
+font-weight:300;
+}
+
+.main{
+flex:1;
+display:flex;
+justify-content:center;
+align-items:center;
+padding:20px;
+}
+
+.card{
+background:rgba(255,255,255,0.05);
+border:1px solid rgba(255,255,255,0.1);
+backdrop-filter:blur(20px);
+padding:40px;
+border-radius:24px;
+width:100%;
+max-width:480px;
+box-shadow:0 25px 60px rgba(0,0,0,0.5);
+transition:0.3s;
+}
+
+.card:hover{
+transform:translateY(-5px);
+}
+
+input,select{
+width:100%;
+padding:14px;
+margin:12px 0;
+border-radius:12px;
+border:none;
+background:rgba(255,255,255,0.08);
+color:white;
+font-size:14px;
+outline:none;
+}
+
+input::placeholder{
+color:rgba(255,255,255,0.5);
+}
+
+button{
+width:100%;
+padding:14px;
+margin-top:12px;
+border:none;
+border-radius:12px;
+background:linear-gradient(135deg,#6366f1,#8b5cf6);
+color:white;
+font-weight:600;
+cursor:pointer;
+transition:0.3s;
+}
+
+button:hover{
+transform:scale(1.03);
+}
+
+#qrcode{
+margin-top:25px;
+display:flex;
+justify-content:center;
+}
+
+footer{
+text-align:center;
+padding:25px;
+font-size:14px;
+opacity:0.6;
+}
+
+footer a{
+color:#a5b4fc;
+margin:0 12px;
+cursor:pointer;
+text-decoration:none;
+}
+
+footer a:hover{
+text-decoration:underline;
+}
+
+.modal{
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.7);
+justify-content:center;
+align-items:center;
+z-index:1000;
+}
+
+.modal-content{
+background:#1e1e2f;
+padding:30px;
+border-radius:20px;
+max-width:600px;
+max-height:80vh;
+overflow-y:auto;
+}
+
+.cookie-banner{
+position:fixed;
+bottom:0;
+width:100%;
+background:#111;
+padding:18px;
+display:none;
+text-align:center;
+font-size:14px;
+}
+
+.cookie-banner button{
+margin-left:10px;
+padding:6px 12px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>WiFiQR</h1>
+<p>Create secure WiFi QR codes instantly</p>
+</header>
+
+<div class="main">
+<div class="card">
+<input type="text" id="ssid" placeholder="WiFi Name (SSID)">
+<input type="password" id="password" placeholder="WiFi Password">
+<select id="encryption">
+<option value="WPA">WPA/WPA2</option>
+<option value="WEP">WEP</option>
+<option value="">No Password</option>
+</select>
+
+<button onclick="generateQR()">Generate QR Code</button>
+<button onclick="downloadQR()">Download QR Code</button>
+
+<div id="qrcode"></div>
+</div>
+</div>
+
+<footer>
+<a onclick="openPrivacy()">Privacy Policy</a>
+<a onclick="openSettings()">Cookie Settings</a>
+<a onclick="viewConsent()">View Consent</a>
+</footer>
+
+<!-- PRIVACY -->
+<div class="modal" id="privacyModal">
+<div class="modal-content">
+<h2>Privacy Policy</h2>
+<p><strong>Last updated:</strong> February 2026</p>
+<br>
+<p>This tool generates WiFi QR codes locally in your browser. We do not store or transmit any WiFi credentials.</p>
+<br>
+<p>Only necessary cookies are used for functionality. Optional analytics cookies require consent.</p>
+<br>
+<p>Contact: u6622122181@id.gle</p>
+<br>
+<button onclick="closePrivacy()">Close</button>
+</div>
+</div>
+
+<!-- COOKIE SETTINGS -->
+<div class="modal" id="cookieModal">
+<div class="modal-content">
+<h2>Cookie Preferences</h2>
+<br>
+<label>
+<input type="checkbox" id="analyticsCheck">
+ Enable analytics cookies
+</label>
+<br><br>
+<button onclick="saveCookies()">Save</button>
+<button onclick="closeSettings()">Cancel</button>
+</div>
+</div>
+
+<!-- COOKIE BANNER -->
+<div class="cookie-banner" id="cookieBanner">
+This site uses cookies.
+<button onclick="acceptAll()">Accept All</button>
+<button onclick="acceptNecessary()">Only Necessary</button>
+<button onclick="rejectAll()">Reject</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script>
+let qr;
+
+function generateQR(){
+const ssid=document.getElementById("ssid").value;
+const password=document.getElementById("password").value;
+const encryption=document.getElementById("encryption").value;
+
+const qrData=`WIFI:T:${encryption};S:${ssid};P:${password};;`;
+
+document.getElementById("qrcode").innerHTML="";
+qr=new QRCode(document.getElementById("qrcode"),{
+text:qrData,
+width:220,
+height:220
+});
+}
+
+function downloadQR(){
+const img=document.querySelector("#qrcode img");
+if(!img) return;
+const link=document.createElement("a");
+link.href=img.src;
+link.download="wifi-qr.png";
+link.click();
+}
+
+function openPrivacy(){
+document.getElementById("privacyModal").style.display="flex";
+}
+function closePrivacy(){
+document.getElementById("privacyModal").style.display="none";
+}
+function openSettings(){
+document.getElementById("cookieModal").style.display="flex";
+}
+function closeSettings(){
+document.getElementById("cookieModal").style.display="none";
+}
+
+function showBanner(){
+if(!localStorage.getItem("consent")){
+document.getElementById("cookieBanner").style.display="block";
+}
+}
+
+function acceptAll(){
+localStorage.setItem("consent","all");
+document.getElementById("cookieBanner").style.display="none";
+}
+
+function acceptNecessary(){
+localStorage.setItem("consent","necessary");
+document.getElementById("cookieBanner").style.display="none";
+}
+
+function rejectAll(){
+localStorage.setItem("consent","rejected");
+document.getElementById("cookieBanner").style.display="none";
+}
+
+function saveCookies(){
+const analytics=document.getElementById("analyticsCheck").checked;
+localStorage.setItem("consent", analytics ? "all" : "necessary");
+closeSettings();
+}
+
+function viewConsent(){
+alert("Current consent: " + (localStorage.getItem("consent") || "Not set"));
+}
+
+showBanner();
+</script>
+
+</body>
+</html>
